@@ -2,7 +2,7 @@
   (:use pallet.crate.github)
   (:require
    [pallet.build-actions :as build-actions]
-   [clojure.contrib.condition :as condition])
+   [slingshot.core :as slingshot])
   (:use
    clojure.test
    pallet.test-utils))
@@ -23,8 +23,9 @@
        (build-actions/build-actions
         {:parameters {:github {:username "u" :apikey "p"}}}
         (deploy-key "project" "title" akey)))
-      (is (thrown?
-           clojure.contrib.condition.Condition
-           (build-actions/build-actions
-            {}
-            (deploy-key "project" "title" akey)))))))
+      (is (re-find
+           #":no-github-credentials"
+           (first
+            (build-actions/build-actions
+             {}
+             (deploy-key "project" "title" akey))))))))

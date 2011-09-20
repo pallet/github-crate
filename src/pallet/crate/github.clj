@@ -6,8 +6,8 @@
    [clj-http.client :as client]
    [clojure.string :as string]
    [clojure.contrib.json :as json]
-   [clojure.contrib.logging :as logging]
-   [clojure.contrib.condition :as condition]))
+   [clojure.tools.logging :as logging]
+   [slingshot.core :as slingshot]))
 
 (def endpoint "https://github.com/api/v2/json")
 
@@ -34,21 +34,19 @@
   [project title key [username apikey]]
   (let [response (api username apikey :get ["/repos/keys" project])]
     (when-not (some #(= key (:key %)) (:public_keys response))
-      (logging/info
-       (format "Installing key %s to github project %s" title project))
+      (logging/infof "Installing key %s to github project %s" title project)
       (let [response (api username apikey :post ["/repos/keys" project]
                           {:body {:title title :key key}})]
         (when-not (some #(= key (:key %)) (:public_keys response))
-          (logging/error
-           (format
-            "Failed to install key %s to github project %s (response %s)"
-            title project response))
-          (condition/raise
-           :type :github-deploy-key-failed-to-install
-           :message (format
-                     "Github deploy key '%s' for project '%s'"
-                     " failed to install."
-                     title project)))))))
+          (logging/errorf
+           "Failed to install key %s to github project %s (response %s)"
+           title project response)
+          (slingshot/throw+
+           {:type :github-deploy-key-failed-to-install
+            :message (format
+                      "Github deploy key '%s' for project '%s'"
+                      " failed to install."
+                      title project)}))))))
 
 (defn- credentials
   "Extract credentials from session or arguments, and normalise username
@@ -59,9 +57,9 @@
                                              session [:github] nil)
                                             options)]
     (when-not (and username (or password apikey))
-      (condition/raise
-       :type :no-github-credentials
-       :message "No github credentials supplied in session or invocation."))
+      (slingshot/throw+
+       {:type :no-github-credentials
+        :message "No github credentials supplied in session or invocation."}))
     (if apikey
       [(str username "/token") apikey]
       [username password])))
