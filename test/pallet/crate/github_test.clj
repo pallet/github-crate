@@ -1,8 +1,7 @@
 (ns pallet.crate.github-test
   (:use pallet.crate.github)
   (:require
-   [pallet.build-actions :as build-actions]
-   [slingshot.core :as slingshot])
+   [pallet.build-actions :as build-actions])
   (:use
    clojure.test
    pallet.test-utils))

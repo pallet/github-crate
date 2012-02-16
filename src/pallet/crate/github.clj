@@ -5,9 +5,14 @@
    [pallet.action :as action]
    [clj-http.client :as client]
    [clojure.string :as string]
-   [clojure.contrib.json :as json]
-   [clojure.tools.logging :as logging]
-   [slingshot.core :as slingshot]))
+   [clojure.data.json :as json]
+   [clojure.tools.logging :as logging]))
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (def endpoint "https://github.com/api/v2/json")
 
@@ -41,7 +46,7 @@
           (logging/errorf
            "Failed to install key %s to github project %s (response %s)"
            title project response)
-          (slingshot/throw+
+          (throw+
            {:type :github-deploy-key-failed-to-install
             :message (format
                       "Github deploy key '%s' for project '%s'"
@@ -57,7 +62,7 @@
                                              session [:github] nil)
                                             options)]
     (when-not (and username (or password apikey))
-      (slingshot/throw+
+      (throw+
        {:type :no-github-credentials
         :message "No github credentials supplied in session or invocation."}))
     (if apikey
